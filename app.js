@@ -135,13 +135,20 @@ app.get("/like/:id" , isLoggedIn , async (req , res) => {
     // post.likes.push(req.user.userid)
 })
 
+//get the post that needs to be updated
 app.get("/edit/:id" , isLoggedIn , async (req , res) => {
     const {id} = req.params;
     const post = await Post.findOne({_id : id}).populate("createdBy");
-
-       
     res.render("edit" , {post});
+})
 
+// update the post by findOneAndUpdate
+app.post("/update/:id" , isLoggedIn , async (req , res) => {
+    const {id} = req.params;
+    const {content} = req.body;
+    
+    const post = await Post.findOneAndUpdate({_id : id} , {content : content});
+    res.redirect("/profile");
 })
 
 app.listen(PORT , ()=> {
