@@ -5,13 +5,11 @@ import bcrypt from "bcrypt";
 import User from "./models/user.model.js";
 import Post from "./models/post.model.js";
 import jwt from "jsonwebtoken";
-import multer from "multer";
-import path from "path";
-import crypto from "crypto";
 
 // import middlewares
 import { isLoggedIn } from "./middlewares/auth.middleware.js";
 import connectDB from "./db/db.js";
+import upload from "./config/multerconfig.js";
 
 dotenv.config();
 const app = express();
@@ -23,25 +21,7 @@ app.set("view engine" , "ejs");
 app.use(express.json()) // this line is used so that data send by user to the backend i not rejected
 app.use(express.urlencoded({extended : true}));
 app.use(cookieParser());
-
-const storage = multer.diskStorage({
-    destination : (req , file , cb)=> {
-        cb(null , "./public/images/uploads");
-    },
-    filename : (req , file , cb) => {
-        crypto.randomBytes(12 , function(err , bytes){
-            const randomHex = bytes.toString("hex");
-
-            const originalName = path.parse(file.originalname).name;
-            const extension = path.extname(file.originalname);
-
-            const filename = `${originalName}-${randomHex}${extension}`;
-            cb(null , filename);
-        })
-    }
-})
-
-const upload = multer({storage : storage});
+app.use(express.static("public"));
 
 app.get("/" , (req , res) => {
     res.render("index")
@@ -172,13 +152,24 @@ app.post("/update/:id" , isLoggedIn , async (req , res) => {
     res.redirect("/profile");
 })
 
-app.get("/test", (req , res) => {
-    res.render("test");
+app.get("/profile/upload", (req , res) => {
+    res.render("profilepic");
 })
 
-app.post("/upload" ,isLoggedIn  , upload.single("image") , (req , res) => {
-    console.log(req.file);
-})
+app.post("/upload", isLoggedIn, upload.single("image"), async (req, res) => {
+    const user = await User.findOne({email : req.user.email});
+
+    if(user){
+        console.log(user);
+    }else{
+        console.log("user not found")
+    }
+
+    user.profilepic = req.file.filename;
+    await user.save();
+
+    res.redirect("/profile");
+});
 
 app.listen(PORT , ()=> {
     console.log(`Listening on port ${PORT}`)
